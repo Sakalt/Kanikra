@@ -117,9 +117,12 @@
 
     <div id="selectedItem">選択中のアイテム: なし</div>
 
+    <!-- キャンバスを明示的に追加 -->
+    <canvas id="gameCanvas"></canvas>
+
     <script>
         // Craftyのセットアップ
-        Crafty.init(800, 600);  // ゲーム画面のサイズ
+        Crafty.init(800, 600, document.getElementById("gameCanvas"));  // ゲーム画面のサイズを設定
 
         // プレイヤーキャラクターを設定
         Crafty.sprite(128, "image/player.png", {
@@ -213,8 +216,8 @@
             } else if (type === "momonga") {
                 mob = Crafty.e("2D, Canvas, SpriteAnimation, Collision")
                     .attr({ x: x, y: y, w: 64, h: 64 })
-                    .sprite(0, 0)  // 画像と位置を指定
-                    .animate("momongaAnim", 0, 0, 4)  // アニメーション設定
+                    .sprite(0, 0)
+                    .animate("momongaAnim", 0, 0, 4)
                     .collision();
                 mob.hp = 20;
                 mob.addComponent("Collision");
@@ -226,13 +229,12 @@
             return mob;
         }
 
-        // 攻撃
-        document.getElementById("attackButton").onclick = function() {
-            alert("攻撃！ダメージ: " + currentSword.damage);
-            currentDamage = currentSword.damage;
-        };
+        // ゲーム初期設定
+        function startGame() {
+            Crafty.scene("main");
+        }
 
-        // クラフトメニューの開閉
+        // クラフトメニューのボタン設定
         document.getElementById("craftButton").onclick = function() {
             document.getElementById("craftingMenu").style.display = "block";
         };
@@ -241,25 +243,19 @@
             document.getElementById("craftingMenu").style.display = "none";
         };
 
-        // 各クラフトボタン
+        // クラフト機能設定
         document.getElementById("craftWoodenPickaxe").onclick = function() {
-            alert("木のピッケルをクラフトしました！");
+            currentSword = swordData.swords[0];  // 木の剣
+            document.getElementById("selectedItem").innerText = `選択中のアイテム: ${currentSword.name}`;
         };
-
         document.getElementById("craftSequoiaPickaxe").onclick = function() {
-            alert("セコイアのピッケルをクラフトしました！");
+            currentSword = swordData.swords[1];  // セコイアの剣
+            document.getElementById("selectedItem").innerText = `選択中のアイテム: ${currentSword.name}`;
         };
-
         document.getElementById("craftLithiumSword").onclick = function() {
-            currentSword = swordData.swords[2];  // リチウム剣に変更
-            alert("リチウム剣をクラフトしました！ダメージ: " + currentSword.damage);
+            currentSword = swordData.swords[2];  // リチウム剣
+            document.getElementById("selectedItem").innerText = `選択中のアイテム: ${currentSword.name}`;
         };
-
-        // 移動ボタン
-        document.getElementById("buttonUp").onclick = function() { movePlayer(0, -32); };
-        document.getElementById("buttonLeft").onclick = function() { movePlayer(-32, 0); };
-        document.getElementById("buttonRight").onclick = function() { movePlayer(32, 0); };
-        document.getElementById("buttonDown").onclick = function() { movePlayer(0, 32); };
     </script>
 </body>
 </html>
