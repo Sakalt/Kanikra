@@ -132,8 +132,17 @@
             .attr({ x: 400, y: 300, w: 32, h: 32 })
             .collision();
 
+        // カーソル用のスプライト定義
+        Crafty.sprite(32, "image/cursor.png", {
+            cursorSprite: [0, 0]
+        });
+
+        // カーソルスプライトを設定
+        var cursor = Crafty.e("2D, Canvas, cursorSprite")
+            .attr({ x: 400, y: 300, w: 32, h: 32 });
+
         // 現在選択されているアイテム
-        let selectedItem = null;
+        let selectedItem = "grass";
 
         // ダメージの変更を管理する変数
         let currentDamage = 1; // 素手の初期ダメージ
@@ -219,22 +228,16 @@
                     .sprite(0, 0)
                     .animate("momongaAnim", 0, 0, 4)
                     .collision();
-                mob.hp = 20;
+                mob.hp = 50;  // HPを設定
                 mob.addComponent("Collision");
                 mob.onHit("Player", function() {
                     mob.hp -= currentDamage;
                     document.getElementById("mobInfo").innerText = `HP: ${mob.hp}`;
                 });
             }
-            return mob;
         }
 
-        // ゲーム初期設定
-        function startGame() {
-            Crafty.scene("main");
-        }
-
-        // クラフトメニューのボタン設定
+        // クラフトボタンのセットアップ
         document.getElementById("craftButton").onclick = function() {
             document.getElementById("craftingMenu").style.display = "block";
         };
@@ -243,19 +246,76 @@
             document.getElementById("craftingMenu").style.display = "none";
         };
 
-        // クラフト機能設定
+        // クラフト処理
         document.getElementById("craftWoodenPickaxe").onclick = function() {
-            currentSword = swordData.swords[0];  // 木の剣
+            currentSword = swordData.swords[0]; // 木の剣に設定
+            currentDamage = currentSword.damage;  // ダメージ設定
             document.getElementById("selectedItem").innerText = `選択中のアイテム: ${currentSword.name}`;
         };
+
         document.getElementById("craftSequoiaPickaxe").onclick = function() {
-            currentSword = swordData.swords[1];  // セコイアの剣
+            currentSword = swordData.swords[1]; // セコイアの剣に設定
+            currentDamage = currentSword.damage;
             document.getElementById("selectedItem").innerText = `選択中のアイテム: ${currentSword.name}`;
         };
+
         document.getElementById("craftLithiumSword").onclick = function() {
-            currentSword = swordData.swords[2];  // リチウム剣
+            currentSword = swordData.swords[2]; // リチウム剣に設定
+            currentDamage = currentSword.damage;
             document.getElementById("selectedItem").innerText = `選択中のアイテム: ${currentSword.name}`;
         };
+
+        // 移動ボタンのイベントリスナー
+        document.getElementById("buttonUp").addEventListener("click", function() {
+            movePlayer(0, -32);
+        });
+
+        document.getElementById("buttonDown").addEventListener("click", function() {
+            movePlayer(0, 32);
+        });
+
+        document.getElementById("buttonLeft").addEventListener("click", function() {
+            movePlayer(-32, 0);
+        });
+
+        document.getElementById("buttonRight").addEventListener("click", function() {
+            movePlayer(32, 0);
+        });
+
+        // カーソルによるブロック設置
+        function placeBlockUnderCursor() {
+            let block = Crafty.e("2D, Canvas, Color")
+                .attr({ x: cursor.x, y: cursor.y, w: 32, h: 32 });
+            
+            switch (selectedItem) {
+                case "grass":
+                    block.color("green");
+                    break;
+                case "dirt":
+                    block.color("brown");
+                    break;
+                case "stone":
+                    block.color("gray");
+                    break;
+                case "wood":
+                    block.color("burlywood");
+                    break;
+                case "sequoiaWood":
+                    block.color("darkred");
+                    break;
+            }
+        }
+
+        // マウスクリックでブロック設置
+        Crafty.addEvent(this, Crafty.stage.elem, "mousedown", function(e) {
+            placeBlockUnderCursor();
+        });
+
+        // カーソルを追従
+        Crafty.addEvent(this, Crafty.stage.elem, "mousemove", function(e) {
+            cursor.x = e.clientX - cursor.w / 2;
+            cursor.y = e.clientY - cursor.h / 2;
+        });
     </script>
 </body>
 </html>
