@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crafty.js ゲーム</title>
+    <script src="https://cdn.jsdelivr.net/npm/crafty@0.9.0/dist/crafty.js"></script>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; }
+        canvas { display: block; }
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:active {
+            background-color: #388e3c;
+        }
+        #itemList {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .itemButton {
+            width: 50px;
+            height: 50px;
+            border: 1px solid #ccc;
+            background-color: #f0f0f0;
+            text-align: center;
+            line-height: 50px;
+            cursor: pointer;
+        }
+        #selectedItem {
+            margin-top: 10px;
+            text-align: center;
+        }
+        #craftingMenu {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .craftButton {
+            margin: 5px;
+            padding: 10px;
+            background-color: #555;
+            color: white;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+        }
+        #mobInfo {
+            position: absolute;
+            top: 200px;
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 10px;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- アイテム一覧 -->
+    <div id="itemList">
+        <div class="itemButton" id="itemGrass">草</div>
+        <div class="itemButton" id="itemDirt">土</div>
+        <div class="itemButton" id="itemStone">石</div>
+        <div class="itemButton" id="itemWood">木材</div>
+        <div class="itemButton" id="itemSequoiaWood">セコイアの木材</div>
+    </div>
+
+    <!-- クラフトメニュー -->
+    <div id="craftingMenu">
+        <button class="craftButton" id="craftWoodenPickaxe">木のピッケル</button>
+        <button class="craftButton" id="craftSequoiaPickaxe">セコイアのピッケル</button>
+        <button class="craftButton" id="craftLithiumSword">リチウム剣</button>
+        <button class="craftButton" id="closeCraftingMenu">閉じる</button>
+    </div>
+
+    <!-- モブ情報 -->
+    <div id="mobInfo"></div>
+
+    <!-- ボタン -->
+    <div id="controls">
+        <button id="buttonUp">↑</button>
+        <button id="buttonLeft">←</button>
+        <button id="buttonRight">→</button>
+        <button id="buttonDown">↓</button>
+        <button id="craftButton">クラフト</button>
+        <button id="attackButton">攻撃</button>
+    </div>
+
+    <div id="selectedItem">選択中のアイテム: なし</div>
+
+    <script>
+        // Craftyのセットアップ
+        Crafty.init(800, 600);  // ゲーム画面のサイズ
+
+        // プレイヤーキャラクターを設定
+        Crafty.sprite(128, "image/player.png", {
+            playerSprite: [0, 0]
+        });
+        var player = Crafty.e("2D, Canvas, playerSprite, Collision")
+            .attr({ x: 400, y: 300, w: 32, h: 32 })
+            .collision();
+
+        // 現在選択されているアイテム
+        let selectedItem = null;
+
+        // ダメージの変更を管理する変数
+        let currentDamage = 1; // 素手の初期ダメージ
+
+        // 剣データをJSONとして定義
+        const swordData = {
+            "swords": [
+                {
+                    "name": "木の剣",
+                    "damage": 2,
+                    "material": "木材"
+                },
+                {
+                    "name": "セコイアの剣",
+                    "damage": 5,
+                    "material": "セコイアの木材"
+                },
+                {
+                    "name": "リチウム剣",
+                    "damage": 10,
+                    "material": "リチウム"
+                }
+            ]
+        };
+
+        // 現在の剣データ
+        let currentSword = swordData.swords[0];  // 初期は木の剣
+
+        // モブのスプライト定義
+        Crafty.sprite(128, "image/momonga.png", {
+            momonga: [0, 0]
+        });
+        Crafty.sprite(128, "image/hachiware.png", {
+            hachiware: [0, 0]
+        });
+
+        // プレイヤーの移動制限関数
+        function movePlayer(x, y) {
+            var newX = player.x + x;
+            var newY = player.y + y;
+
+            // 画面内に収まるように制限
+            if (newX >= 0 && newX <= Crafty.viewport.width - player.w) {
+                player.x = newX;
+            }
+            if (newY >= 0 && newY <= Crafty.viewport.height - player.h) {
+                player.y = newY;
+            }
+        }
+
+        // アイテム選択
+        function setupItemButton(id, item) {
+            document.getElementById(id).onclick = function() {
+                selectedItem = item;
+                document.getElementById("selectedItem").innerText = `選択中のアイテム: ${item}`;
+            };
+        }
+
+        setupItemButton("itemGrass", "grass");
+        setupItemButton("itemDirt", "dirt");
+        setupItemButton("itemStone", "stone");
+        setupItemButton("itemWood", "wood");
+        setupItemButton("itemSequoiaWood", "sequoiaWood");
+
+        // モブ作成 (ちいかわ風キャラクター)
+        function createMob(type, x, y) {
+            let mob;
+            if (type === "hachiware") {
+                mob = Crafty.e("2D, Canvas, SpriteAnimation, Collision")
+                    .attr({ x: x, y: y, w: 64, h: 64 })
+                    .sprite(0, 0) // 画像と位置を指定
+                    .animate("hachiwareAnim", 0, 0, 4)  // アニメーション設定
+                    .collision();
+                mob.hp = 30;  // HPを設定
+                mob.addComponent("Collision");
+                mob.onHit("Player", function() {
+                    mob.hp -= currentDamage; // ダメージを受ける
+                    document.getElementById("mobInfo").innerText = `HP: ${mob.hp}`;
+                });
+            } else if (type === "momonga") {
+                mob = Crafty.e("2D, Canvas, SpriteAnimation, Collision")
+                    .attr({ x: x, y: y, w: 64, h: 64 })
+                    .sprite(0, 0)  // 画像と位置を指定
+                    .animate("momongaAnim", 0, 0, 4)  // アニメーション設定
+                    .collision();
+                mob.hp = 20;
+                mob.addComponent("Collision");
+                mob.onHit("Player", function() {
+                    mob.hp -= currentDamage;
+                    document.getElementById("mobInfo").innerText = `HP: ${mob.hp}`;
+                });
+            }
+            return mob;
+        }
+
+        // 攻撃
+        document.getElementById("attackButton").onclick = function() {
+            alert("攻撃！ダメージ: " + currentSword.damage);
+            currentDamage = currentSword.damage;
+        };
+
+        // クラフトメニューの開閉
+        document.getElementById("craftButton").onclick = function() {
+            document.getElementById("craftingMenu").style.display = "block";
+        };
+
+        document.getElementById("closeCraftingMenu").onclick = function() {
+            document.getElementById("craftingMenu").style.display = "none";
+        };
+
+        // 各クラフトボタン
+        document.getElementById("craftWoodenPickaxe").onclick = function() {
+            alert("木のピッケルをクラフトしました！");
+        };
+
+        document.getElementById("craftSequoiaPickaxe").onclick = function() {
+            alert("セコイアのピッケルをクラフトしました！");
+        };
+
+        document.getElementById("craftLithiumSword").onclick = function() {
+            currentSword = swordData.swords[2];  // リチウム剣に変更
+            alert("リチウム剣をクラフトしました！ダメージ: " + currentSword.damage);
+        };
+
+        // 移動ボタン
+        document.getElementById("buttonUp").onclick = function() { movePlayer(0, -32); };
+        document.getElementById("buttonLeft").onclick = function() { movePlayer(-32, 0); };
+        document.getElementById("buttonRight").onclick = function() { movePlayer(32, 0); };
+        document.getElementById("buttonDown").onclick = function() { movePlayer(0, 32); };
+    </script>
+</body>
+</html>
