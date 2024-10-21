@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+    <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+    <style>
+      #game-container {
+        width: 800px;
+        height: 600px;
+        display: inline-block;
+      }
+      #blocklyDiv {
+        height: 600px;
+        width: 400px;
+        display: inline-block;
+        vertical-align: top;
+      }
+      #executeBtn {
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container"></div>
+    <div id="blocklyDiv"></div>
+    <button id="executeBtn">実行</button>
+
+    <script>
+      // Phaserゲーム設定
+      const config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        backgroundColor: '#5DACD8',
+        parent: 'game-container',
+        physics: {
+          default: 'arcade',
+          arcade: {
+            gravity: { y: 300 },
+            debug: false
+          }
+        },
+        scene: {
+          preload: preload,
+          create: create,
+          update: update
+        }
+      };
+
+      const game = new Phaser.Game(config);
+      let character;
+      let cursors;
+
+      function preload() {
+        // キャラクターの画像を読み込み
+        this.load.image('character', 'image/hachiware.png');
+      }
+
+      function create() {
+        character = this.physics.add.sprite(100, 450, 'character');
+        character.setBounce(0.2);
+        character.setCollideWorldBounds(true);
+
+        cursors = this.input.keyboard.createCursorKeys();
+      }
+
+      function update() {
+        // ブロック操作による動作は自動で更新される
+      }
+
+      // Blockly設定
+      const workspace = Blockly.inject('blocklyDiv', {
+        toolbox: `
+          <xml>
+            <block type="move_forward"></block>
+            <block type="jump"></block>
+            <block type="rotate"></block>
+          </xml>
+        `
+      });
+
+      // Blocklyブロック定義
+      Blockly.Blocks['move_forward'] = {
+        init: function() {
+          this.appendDummyInput().appendField("前進");
+          this.setPreviousStatement(true, null);
+          this.setNextStatement(true, null);
+          this.setColour(230);
+          this.setTooltip('');
+          this.setHelpUrl('');
+        }
+      };
+
+      Blockly.Blocks['jump'] = {
+        init: function() {
+          this.appendDummyInput().appendField("ジャンプ");
+          this.setPreviousStatement(true, null);
+          this.setNextStatement(true, null);
+          this.setColour(230);
+          this.setTooltip('');
+          this.setHelpUrl('');
+        }
+      };
+
+      Blockly.Blocks['rotate'] = {
+        init: function() {
+          this.appendDummyInput().appendField("回転");
+          this.setPreviousStatement(true, null);
+          this.setNextStatement(true, null);
+          this.setColour(230);
+          this.setTooltip('');
+          this.setHelpUrl('');
+        }
+      };
+
+      // Blocklyのブロックに対応するJavaScriptコード生成
+      Blockly.JavaScript['move_forward'] = function(block) {
+        return 'character.setVelocityX(160);\n';
+      };
+
+      Blockly.JavaScript['jump'] = function(block) {
+        return 'if (character.body.touching.down) { character.setVelocityY(-330); }\n';
+      };
+
+      Blockly.JavaScript['rotate'] = function(block) {
+        return 'character.angle += 90;\n';
+      };
+
+      // 実行ボタンのクリックイベント
+      document.getElementById('executeBtn').addEventListener('click', function() {
+        const code = Blockly.JavaScript.workspaceToCode(workspace);
+        try {
+          eval(code); // 生成されたコードを実行
+        } catch (e) {
+          console.error(e);
+        }
+      });
+    </script>
+  </body>
+</html>
